@@ -4,7 +4,7 @@ from config import POLYGON_API_KEY
 from datetime import datetime, timedelta
 import numpy as np
 
-def estimate_historical_volatility(ticker: str, window: int = 30) -> float:
+def estimate_historical_volatility(ticker: str, window: int = 35) -> float:
     end_date = datetime.today().date()
     start_date = end_date - timedelta(days=window * 1.5)
     
