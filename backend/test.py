@@ -1,12 +1,9 @@
-from services.options_service import get_polygon_option_contracts
+from services.volatility_service import estimate_historical_volatility
 
-result = get_polygon_option_contracts(
-    ticker="AAPL",
-    type="call",
-    min_strike=105,
-    max_strike=117
-)
-
-print(f"Filtered contracts: {len(result['contracts'])}")
-for contract in result["contracts"]:
-    print(contract)
+if __name__ == "__main__":
+    ticker = "AAPL"
+    try:
+        vol = estimate_historical_volatility(ticker)
+        print(f"Estimated volatility for {ticker}: {vol:.4f}")
+    except Exception as e:
+        print(f"Error: {e}")
