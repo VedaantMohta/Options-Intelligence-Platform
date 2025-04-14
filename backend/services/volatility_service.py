@@ -4,12 +4,9 @@ from config import POLYGON_API_KEY
 from datetime import datetime, timedelta
 import numpy as np
 
-def estimate_historical_volatility(ticker: str, window: int = 35) -> float:
+def estimate_historical_volatility(ticker: str, window: int = 35):
     end_date = datetime.today().date()
     start_date = end_date - timedelta(days=window * 1.5)
-    
-    print(start_date)
-    print(end_date)
 
     url = (
         f"https://api.polygon.io/v2/aggs/ticker/{ticker.upper()}/range/1/day/"
@@ -34,5 +31,5 @@ def estimate_historical_volatility(ticker: str, window: int = 35) -> float:
     closes = np.array(closes)
     returns = np.log(closes[1:] / closes [:-1])
     volatility = np.std(returns) * np.sqrt(252)
-
-    return volatility
+    print(volatility)
+    return volatility, closes[-1]

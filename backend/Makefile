@@ -40,7 +40,8 @@ debug:
 
 # Clean build files
 clean:
-	$(RM) $(OUT_DIR)/*.$(EXT)
+	@for %%f in (build\*.dll) do del "%%f"
+
 
 # Force rebuild
 rebuild: clean all

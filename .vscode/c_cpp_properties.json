@@ -1,0 +1,19 @@
+{
+    "configurations": [
+      {
+        "name": "Win64",
+        "includePath": [
+          "${workspaceFolder}/**",
+          "C:/Users/vedaa/AppData/Local/Programs/Python/Python310/include",  // <- your Python include
+          "C:/Users/vedaa/AppData/Local/Programs/Python/Python310/Lib/site-packages/pybind11/include" // <- pybind11
+        ],
+        "defines": [],
+        "compilerPath": "C:/mingw64/bin/g++.exe",
+        "cStandard": "c17",
+        "cppStandard": "c++17",
+        "intelliSenseMode": "windows-gcc-x64"
+      }
+    ],
+    "version": 4
+  }
+  

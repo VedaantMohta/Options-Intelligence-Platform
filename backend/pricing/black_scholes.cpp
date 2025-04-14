@@ -1,13 +1,19 @@
 #include "black_scholes.h"
 #include <cmath>
 #include <string>
+#include <iostream>
 
-double black_scholes_calculator(double S, 
-                                double K, 
-                                double T, 
-                                double r, 
-                                double sigma, 
-                                const std::string& option_type) {
+
+double normal_cdf(double x) {
+    return 0.5 * std::erf(x / std::sqrt(2)) + 0.5;
+}
+
+extern "C" DLL_EXPORT double black_scholes_calculator(double S,
+                                                      double K,
+                                                      double T,
+                                                      double r,
+                                                      double sigma,
+                                                      const std::string &option_type) {
     double d1 = (std::log(S/K) + (r + (sigma * sigma)/2) * T) / (sigma * std::sqrt(T));
     double d2 = d1 - sigma * std::sqrt(T);
 
@@ -21,8 +27,4 @@ double black_scholes_calculator(double S,
     }
 
     return option_price;
-}
-
-double normal_cdf(double x) {
-    return 0.5 * std::erf(x / std::sqrt(2)) + 0.5;
 }

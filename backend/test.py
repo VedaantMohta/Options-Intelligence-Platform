@@ -1,9 +1,11 @@
-from services.volatility_service import estimate_historical_volatility
+from services.options_service import price_option_from_source
 
-if __name__ == "__main__":
-    ticker = "COST"
-    try:
-        vol = estimate_historical_volatility(ticker)
-        print(f"Estimated volatility for {ticker}: {vol:.4f}")
-    except Exception as e:
-        print(f"Error: {e}")
+test_contract = {
+    "type": "call",
+    "strike": 113,
+    "expiration": "2025-06-20",  # must match YYYY-MM-DD format
+    "symbol": "O:AAPL250419C00205000"
+}
+
+price = price_option_from_source("NVDA", test_contract)
+print(f"Calculated Option Price: {price:.4f}")

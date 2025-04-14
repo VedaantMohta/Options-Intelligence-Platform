@@ -1,11 +1,21 @@
-#ifndef BLACK_SCHOLES_H
-#define BLACK_SCHOLES_H
-
+#pragma once
 #include <string>
 
-// Calculates the Black-Scholes price for a call or put option
-double black_scholes_calculator(double S, double K, double T, double r, double sigma, const std::string& option_type);
+#ifdef _WIN32
+#define DLL_EXPORT __declspec(dllexport)
+#else
+#define DLL_EXPORT
+#endif
 
 double normal_cdf(double x);
 
-#endif // BLACK_SCHOLES_H
+extern "C" {
+    DLL_EXPORT double black_scholes_calculator(double S, 
+                                                double K, 
+                                                double T, 
+                                                double r, 
+                                                double sigma, 
+                                                const std::string& option_type);
+}
+
+
