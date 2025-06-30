@@ -29,4 +29,4 @@ async def estimate_historical_volatility(ticker: str, window: int = 60) -> Tuple
     log_returns = np.log(closes[1:] / closes[:-1])
     volatility = np.std(log_returns) * np.sqrt(252)
     
-    return .3134, closes[-1]
+    return volatility, closes[-1]
