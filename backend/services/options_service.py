@@ -1,63 +1,36 @@
-import requests
-import pricing_cpp # type: ignore
-from typing import Optional
+import httpx
+from typing import Optional, List, Dict
 from config import POLYGON_API_KEY
-from datetime import datetime, timedelta
-from services.volatility_service import estimate_historical_volatility
 
-def get_polygon_option_contracts(ticker: str,
-                                 type: Optional[str] = None,
-                                 expiration: Optional[str] = None,
-                                 min_strike: Optional[float] = None,
-                                 max_strike: Optional[float] = None) -> dict:
-    url = (
-        f"https://api.polygon.io/v3/reference/options/contracts"
-        f"?underlying_ticker={ticker.upper()}&expired=false&limit=1000&apiKey={POLYGON_API_KEY}"
-    )
-
-    if type:
-        url += f"&contract_type={type.lower()}"
-    if expiration:
-        url += f"&expiration_date={expiration}"
-    if min_strike is not None:
-        url += f"&strike_price.gte={min_strike}"
-    if max_strike is not None:
-        url += f"&strike_price.lte={max_strike}"
-
-
-    response = requests.get(url)
-    if response.status_code != 200:
-        raise ValueError(f"Polygon API request failed with status {response.status_code}")
+async def get_polygon_option_contracts(ticker: str,
+                                       option_type: Optional[str] = None,
+                                       expiration_date: Optional[str] = None,
+                                       min_strike_price: Optional[float] = None,
+                                       max_strike_price: Optional[float] = None) -> List[Dict]:
     
-    data = response.json()
-    contracts_raw = data.get("results", [])
-    contracts = []
-
-    for contract in contracts_raw:
-        if type and contract.get("contract_type", "").lower() != type.lower(): continue
-        if expiration and contract.get("expiration_date") != expiration: continue
-        strike = contract.get("strike_price")
-        if min_strike is not None and strike < min_strike: continue
-        if max_strike is not None and strike > max_strike: continue
-        contracts.append({
-            "type": contract.get("contract_type"),
-            "strike": contract.get("strike_price"),
-            "expiration": contract.get("expiration_date"),
-            "symbol": contract.get("ticker"),
-        })
+    base_url = "https://api.polygon.io/v3/reference/options/contracts"
     
-    return {
-        "ticker": ticker.upper(),
-        "contracts": contracts
+    params = {
+        'apiKey': POLYGON_API_KEY,
+        'underlying_ticker': ticker.upper(),
+        'expired': 'false',
+        'limit': 1000
     }
 
-def price_option_from_source(ticker: str, contract: dict) -> float:
-    sigma, S = estimate_historical_volatility(ticker)
-    K = contract["strike"]
-    expiration_date = datetime.strptime(contract["expiration"], "%Y-%m-%d").date()
-    days_to_exp = (expiration_date - datetime.today().date()).days
-    T = days_to_exp / 252
-    r = 0.0426
-    option_type = contract["type"].lower()
+    if option_type:
+        params['contract_type'] = option_type.lower()
+    if expiration_date:
+        params['expiration_date'] = expiration_date
+    if min_strike_price is not None:
+        params['strike_price.gte'] = min_strike_price
+    if max_strike_price is not None:
+        params['strike_price.lte'] = max_strike_price
 
-    return pricing_cpp.calculate_option_price(S, K, T, r, sigma, option_type)
+    async with httpx.AsyncClient() as client:
+        response = await client.get(base_url, params=params)
+    
+    if response.status_code != 200:
+        raise ValueError(f"Polygon API request failed with status {response.status_code}: {response.text}")
+    
+    data = response.json()
+    return data.get("results", [])

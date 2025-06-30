@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 class OptionContract(BaseModel):
     type: str
@@ -25,3 +25,24 @@ class PricingRequest(BaseModel):
 
 class PricingResponse(BaseModel):
     price: float
+
+class OptionChainRequest(BaseModel):
+    ticker: str
+    option_type: Optional[str] = None
+    expiration_date: Optional[str] = None
+    min_strike_price: Optional[float] = None
+    max_strike_price: Optional[float] = None
+
+class PricedContract(BaseModel):
+    symbol: str
+    strike_price: float
+    option_type: str
+    expiration_date: str
+    calculated_price: float
+
+class PricedOptionChainResponse(BaseModel):
+    ticker: str
+    underlying_price: float
+    volatility: float
+    risk_free_rate: float
+    priced_contracts: List[PricedContract]
