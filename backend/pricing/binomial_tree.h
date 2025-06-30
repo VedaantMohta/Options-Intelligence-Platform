@@ -10,7 +10,7 @@
 
 // Core pricing function for binomial tree model
 extern "C" {
-    DLL_EXPORT double binomial_tree_price(double S,
+    DLL_EXPORT double binomial_tree_calculator(double S,
                                           double K,
                                           double T,
                                           double r,

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query, HTTPException
-from app.schemas.options_schema import OptionChainResponse, PricingRequest
+from app.schemas.options_schema import OptionChainResponse, PricingRequest, PricingResponse
 from services.options_service import get_polygon_option_contracts
 import pricing_cpp # type: ignore
 
@@ -22,17 +22,35 @@ def fetch_option_contracts(ticker: str = Query(..., description="Stock Ticker Sy
     except Exception as e:
         raise HTTPException(status_code=500, detail="Unexpected error occurred.")
 
-@router.post("/price")
+@router.post("/price", response_model=PricingResponse)
 def price_option(request: PricingRequest):
     try:
-        result = pricing_cpp.calculate_option_price(
-            request.S,
-            request.K,
-            request.T,
-            request.r,
-            request.sigma,
-            request.option_type
-        )
+        result = 0.0
+        
+        if request.model == 'binomial_tree':
+            result = pricing_cpp.binomial_tree_calculator(
+                request.S,
+                request.K,
+                request.T,
+                request.r,
+                request.sigma,
+                request.steps,
+                request.option_type,
+                request.is_american
+            )
+        elif request.model == 'black_scholes':
+            if request.is_american:
+                raise ValueError("Black-Scholes model can only be used for European options.")
+            
+            result = pricing_cpp.black_scholes_calculator(
+                request.S,
+                request.K,
+                request.T,
+                request.r,
+                request.sigma,
+                request.option_type
+            )
+        
         return {"price": result}
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=400, detail=str(e))
