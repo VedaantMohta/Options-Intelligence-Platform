@@ -1,6 +1,6 @@
 # Options Intelligence Platform (In-Progress)
 
-A high-performance options analytics backend designed for quantitative analysis. This platform provides a RESTful API to fetch live option chain data from Polygon.io, price contracts using sophisticated C++ models, and analyze historical volatility. Currently working on expanding capabilities by implementing new featers, including machine learning driven profitability heatmaps.
+A high-performance options analytics backend designed for quantitative analysis. This platform provides a RESTful API to fetch live option chain data from Polygon.io, price contracts using sophisticated C++ models, and analyze historical volatility. Currently working on expanding capabilities by implementing new features, including machine learning driven profitability heatmaps and interactive frontend.
 
 ---
 
