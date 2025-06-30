@@ -90,11 +90,7 @@ cd options-intelligence-platform/backend
 
 2. **Set Up a Virtual Environment**
 python -m venv venv
-# Activate:
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
+activate venv
 
 3. **Install Dependencies**
 pip install -r requirements.txt
