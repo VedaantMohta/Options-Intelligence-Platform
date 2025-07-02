@@ -1,8 +1,13 @@
 from fastapi import APIRouter, Query, HTTPException
-from app.schemas.options_schema import OptionChainResponse, PricingRequest, PricingResponse, OptionChainRequest, PricedOptionChainResponse, PricedContract
+from app.schemas.options_schema import (
+    OptionChainResponse, PricingRequest, PricingResponse, OptionChainRequest,
+    PricedOptionChainResponse, PricedContract, StrikesResponse, 
+    ContractDetailsResponse, HeatmapRequest, HeatmapResponse
+)
 from services.options_service import get_polygon_option_contracts
 from services import volatility_service
 from datetime import datetime
+import numpy as np
 import pricing_cpp # type: ignore
 
 router = APIRouter(
@@ -89,6 +94,77 @@ async def price_full_option_chain(request: OptionChainRequest):
             ticker=request.ticker.upper(), underlying_price=underlying_price,
             volatility=volatility, risk_free_rate=risk_free_rate,
             priced_contracts=priced_contracts
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/strikes", response_model=StrikesResponse, summary="Get Available Strike Prices")
+async def get_strikes_for_expiration(ticker: str, expiration_date: str):
+    try:
+        contracts = await get_polygon_option_contracts(
+            ticker=ticker,
+            expiration_date=expiration_date
+        )
+
+        strikes = sorted(list(set(c['strike_price'] for c in contracts)))
+        return StrikesResponse(strikes=strikes)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/contract-details", response_model=ContractDetailsResponse, summary="Get Live Contract Details")
+async def get_contract_details(ticker: str, expiration_date: str, strike_price: float, option_type: str):
+    try:
+        volatility, underlying_price = await volatility_service.estimate_historical_volatility(ticker)
+
+        option_market_price = 0.0
+
+        return ContractDetailsResponse(
+            underlying_price=underlying_price,
+            option_price=option_market_price,
+            volatility=volatility
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@router.post("/heatmap", response_model=HeatmapResponse, summary="Generate Pricing Heatmap")
+async def generate_heatmap(request: HeatmapRequest):
+    try:
+        volatility, underlying_price = await volatility_service.estimate_historical_volatility(request.ticker)
+        risk_free_rate = 0.0425
+        today = datetime.now().date()
+        expiration = datetime.strptime(request.expiration_date, '%Y-%m-%d').date()
+        time_to_maturity = (expiration - today).days / 365.25
+
+        stock_price_axis = np.linspace(underlying_price * 0.8, underlying_price * 1.2, 10).tolist()
+        time_axis = np.linspace(time_to_maturity, 0.0, 10).tolist()
+
+        heatmap_prices = []
+
+        for t in reversed(time_axis):
+            row_prices = []
+            if t > 0:
+                for s in stock_price_axis:
+                    price = pricing_cpp.binomial_tree_calculator(
+                        S=s, K=request.strike_price, T=t, r=risk_free_rate,
+                        sigma=volatility, steps=1000, option_type=request.option_type,
+                        is_american=True
+                    )
+                    row_prices.append(price)
+            else:
+                for s in stock_price_axis:
+                    price = max(0.0, s - request.strike_price) if request.option_type == 'call' else max(0.0, request.strike_price - s)
+                    row_prices.append(price)
+            heatmap_prices.append(row_prices)
+        
+        heatmap_prices.reverse()
+
+        return HeatmapResponse(
+            stock_price_axis=stock_price_axis,
+            time_axis=time_axis,
+            prices=heatmap_prices
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -46,3 +46,24 @@ class PricedOptionChainResponse(BaseModel):
     volatility: float
     risk_free_rate: float
     priced_contracts: List[PricedContract]
+
+class StrikesResponse(BaseModel):
+    strikes: List[float]
+
+# For the new GET /contract-details endpoint
+class ContractDetailsResponse(BaseModel):
+    underlying_price: float
+    option_price: float
+    volatility: float
+
+# For the new POST /heatmap endpoint
+class HeatmapRequest(BaseModel):
+    ticker: str
+    strike_price: float
+    expiration_date: str
+    option_type: Literal['call', 'put']
+
+class HeatmapResponse(BaseModel):
+    stock_price_axis: List[float]
+    time_axis: List[float]
+    prices: List[List[float]]
