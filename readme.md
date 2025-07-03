@@ -9,6 +9,7 @@ A high-performance options analytics backend designed for quantitative analysis.
 ## Demo: Interactive 3D Pricing Surface
 
 The platform's frontend can generate interactive 3D surface plots, visualizing an option's theoretical price (Z-axis) based on changes in the underlying stock price (X-axis) and time to maturity (Y-axis).
+![image](https://github.com/user-attachments/assets/fb9768a5-c5a4-4e0e-9ff8-925f70852b2e)
 
 
 ---
