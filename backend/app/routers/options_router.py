@@ -133,37 +133,35 @@ async def get_contract_details(ticker: str, expiration_date: str, strike_price: 
 async def generate_heatmap(request: HeatmapRequest):
     try:
         volatility, underlying_price = await volatility_service.estimate_historical_volatility(request.ticker)
-        risk_free_rate = 0.0425
+        risk_free_rate = 0.0525
         today = datetime.now().date()
         expiration = datetime.strptime(request.expiration_date, '%Y-%m-%d').date()
-        time_to_maturity = (expiration - today).days / 365.25
+        
+        days_to_maturity = (expiration - today).days
 
-        stock_price_axis = np.linspace(underlying_price * 0.8, underlying_price * 1.2, 10).tolist()
-        time_axis = np.linspace(time_to_maturity, 0.0, 10).tolist()
+        stock_price_axis = np.linspace(underlying_price * 0.8, underlying_price * 1.2, 20).tolist()
+        time_axis_days = np.linspace(days_to_maturity, 1, 20).astype(int).tolist()
 
         heatmap_prices = []
-
-        for t in reversed(time_axis):
+        for days in reversed(time_axis_days):
             row_prices = []
-            if t > 0:
-                for s in stock_price_axis:
-                    price = pricing_cpp.binomial_tree_calculator(
-                        S=s, K=request.strike_price, T=t, r=risk_free_rate,
-                        sigma=volatility, steps=1000, option_type=request.option_type,
-                        is_american=True
-                    )
-                    row_prices.append(price)
-            else:
-                for s in stock_price_axis:
-                    price = max(0.0, s - request.strike_price) if request.option_type == 'call' else max(0.0, request.strike_price - s)
-                    row_prices.append(price)
+
+            t_years = days / 365.25
+            
+            for s in stock_price_axis:
+                price = pricing_cpp.binomial_tree_calculator(
+                    S=s, K=request.strike_price, T=t_years, r=risk_free_rate,
+                    sigma=volatility, steps=100, option_type=request.option_type,
+                    is_american=True
+                )
+                row_prices.append(price)
             heatmap_prices.append(row_prices)
         
         heatmap_prices.reverse()
 
         return HeatmapResponse(
             stock_price_axis=stock_price_axis,
-            time_axis=time_axis,
+            time_axis=time_axis_days,
             prices=heatmap_prices
         )
     except Exception as e:

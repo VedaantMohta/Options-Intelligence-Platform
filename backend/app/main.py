@@ -7,4 +7,4 @@ app = FastAPI(
     version="0.1"
 )
 
-app.include_router(options_router, prefix="/options", tags=["Options"])
+app.include_router(options_router)
