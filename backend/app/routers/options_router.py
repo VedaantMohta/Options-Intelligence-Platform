@@ -117,11 +117,29 @@ async def get_contract_details(ticker: str, expiration_date: str, strike_price: 
     try:
         volatility, underlying_price = await volatility_service.estimate_historical_volatility(ticker)
 
-        option_market_price = 0.0
+        today = datetime.now().date()
+        expiration = datetime.strptime(expiration_date, '%Y-%m-%d').date()
+        time_to_maturity = (expiration - today).days / 365.25
+
+        risk_free_rate = 0.0425
+
+        calculated_option_price = 0.0
+        if time_to_maturity > 0:
+            calculated_option_price = pricing_cpp.binomial_tree_calculator(
+                S=underlying_price,
+                K=strike_price,
+                T=time_to_maturity,
+                r=risk_free_rate,
+                sigma=volatility,
+                steps=200,
+                option_type=option_type,
+                is_american=True
+            )
+
 
         return ContractDetailsResponse(
             underlying_price=underlying_price,
-            option_price=option_market_price,
+            option_price=calculated_option_price,
             volatility=volatility
         )
     except Exception as e:

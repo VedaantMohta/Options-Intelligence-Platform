@@ -1,76 +1,99 @@
-# Options Intelligence Platform (In-Progress)
+# Options Intelligence Platform
 
-A high-performance options analytics backend designed for quantitative analysis. This platform provides a RESTful API to fetch live option chain data from Polygon.io, price contracts using sophisticated C++ models, and analyze historical volatility. Currently working on expanding capabilities by implementing new features, including machine learning driven profitability heatmaps and interactive frontend.
+![C++](https://img.shields.io/badge/C++-17-blue.svg) ![Python](https://img.shields.io/badge/Python-3.10+-blueviolet.svg) ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-teal.svg) ![pybind11](https://img.shields.io/badge/pybind11-2.11-orange.svg)
+
+A high-performance options analytics backend designed for quantitative analysis. This platform provides a RESTful API to fetch live option chain data from Polygon.io, price contracts using sophisticated C++ models, and generate interactive 3D pricing surfaces.
+
+---
+
+## Demo: Interactive 3D Pricing Surface
+
+The platform's frontend can generate interactive 3D surface plots, visualizing an option's theoretical price (Z-axis) based on changes in the underlying stock price (X-axis) and time to maturity (Y-axis).
+
 
 ---
 
 ## Key Features
 
-- **Live Option Chain Data**  
-  Fetch real-time option contract data for any underlying stock, with filtering by contract type, expiration date, and strike price range.
+-   **Live Option Chain Data**: Fetch real-time option contract data for any underlying stock, with filtering by contract type, expiration date, and strike price range.
 
-- **High-Performance Pricing Engine**  
-  Core pricing models are written in modern C++17 for maximum performance and precision.
+-   **High-Performance Pricing Engine**: Core pricing models are written in modern C++17 for maximum performance and precision.
+    -   **Binomial Tree Model**: Prices both American (early-exercise) and European options. Highly optimized with loop-invariant code hoisting to minimize branching in the hot path.
+    -   **Black-Scholes Model**: A fast, analytical model for pricing European options, serving as a baseline for validation.
 
-- **Binomial Tree Model**  
-  Prices both American (early-exercise) and European options. Highly optimized with loop-invariant code hoisting to minimize branching in the hot path.
+-   **Python-C++ Integration**: The C++ pricing engine is seamlessly exposed to Python using `pybind11`, combining C++ performance with Python's ease of use.
 
-- **Black-Scholes Model**  
-  A fast, analytical model for pricing European options, serving as a baseline for validation.
+-   **Asynchronous REST API**: Built with FastAPI, the API is fully asynchronous, utilizing `httpx` for non-blocking I/O to handle high-concurrency workloads efficiently.
 
-- **Python-C++ Integration**  
-  The C++ pricing engine is seamlessly exposed to Python using `pybind11`, combining C++ performance with Python's ease of use.
+-   **On-the-Fly Volatility Estimation**: A dedicated service calculates annualized historical volatility from recent market data (since implied volatility was unavailable), providing a key input for pricing models.
 
-- **Asynchronous REST API**  
-  Built with FastAPI, fully asynchronous using `httpx` for non-blocking I/O to handle high-concurrency workloads efficiently.
-
-- **On-the-Fly Volatility Estimation**  
-  A dedicated service calculates annualized historical volatility from recent market data, providing a key input for pricing models.
-
----
+-   **Interactive 3D Visualization**: An async endpoint coordinates over 400 C++ pricing evaluations to dynamically generate 3D data surfaces.
 
 ## Tech Stack
 
-| Layer           | Technology  | Purpose                                               |
-|-----------------|-------------|-------------------------------------------------------|
-| Backend API     | Python (FastAPI) | Asynchronous request handling, data validation, orchestration |
-| Pricing Engine  | C++17       | Performance-critical financial model calculations     |
-| Integration    | pybind11    | Efficient, low-overhead Python bindings for C++ engine |
-| Data Provider   | Polygon.io  | Live market data for stock prices and option contracts |
-| Data Analysis   | NumPy       | Numerical operations for volatility calculation       |
-| HTTP Client    | httpx       | High-performance asynchronous HTTP requests           |
-
----
+| Layer          | Technology                          | Purpose                                                      |
+| :------------- | :---------------------------------- | :----------------------------------------------------------- |
+| **Backend API**| Python (FastAPI)                    | Asynchronous request handling, data validation, and orchestration. |
+| **Pricing Engine**| C++17                             | Performance-critical financial model calculations.           |
+| **Integration**| `pybind11`                          | Creating efficient, low-overhead Python bindings for the C++ engine. |
+| **Data Provider**| [Polygon.io](https://polygon.io/)   | Live market data for stock prices and option contracts.      |
+| **Data Analysis**| `NumPy`                             | Numerical operations for volatility calculation.             |
+| **HTTP Client**| `httpx`                             | High-performance, asynchronous HTTP requests to external APIs. |
+| **Frontend** | React, Plotly.js, Tailwind CSS      | Interactive data visualization and user interface.           |
 
 ## System Architecture
 
-- **API Layer (FastAPI)**  
-  Handles user interaction and request validation using Pydantic schemas.
+The application is designed with a clear separation of concerns, ensuring modularity and scalability.
 
-- **Service Layer (Python)**  
-  Calls dedicated async services for fetching data and calculations.
-
-- **Volatility Service**  
-  Fetches historical price data and calculates volatility metrics.
-
-- **Options Service**  
-  Retrieves option chain data from Polygon.io.
-
-- **Pricing Engine (C++)**  
-  Prices each contract by calling the C++ module via `pybind11` with market data inputs.
-
-- **Response**  
-  The priced data is structured and returned as JSON.
-
----
+1.  **Frontend (React)**: The user interacts with a guided UI to select an option contract and trigger analysis.
+2.  **API Layer (FastAPI)**: The frontend communicates with the backend via a RESTful API. Endpoints are validated using Pydantic schemas.
+3.  **Service Layer (Python)**: The API calls dedicated `async` services to perform tasks.
+    -   `Volatility Service`: Fetches historical price data to calculate `S` and `sigma`.
+    -   `Options Service`: Fetches option chain and contract data from Polygon.io.
+4.  **Pricing Engine (C++)**: For complex calculations like the heatmap, the service layer calls the compiled C++ module via its `pybind11` bridge, passing in market data to get a calculated price.
+5.  **Response**: The priced data is structured and returned as JSON to the frontend for visualization.
 
 ## API Endpoints
 
-| Endpoint             | Method | Description                                                                                  |
-|----------------------|--------|----------------------------------------------------------------------------------------------|
-| `/options/`          | GET    | Retrieves a list of option contracts based on filter criteria                               |
-| `/options/price`     | POST   | Calculates theoretical price of a single option using Black-Scholes or Binomial Tree models |
-| `/options/chain/price` | POST   | Fetches volatility and stock data, then prices an entire option chain individually          |
+A summary of the core API endpoints. For a full interactive list, run the server and navigate to `/docs`.
+
+### `POST /options/heatmap`
+
+Generates a 20x20 grid of theoretical option prices for a 3D surface plot.
+
+-   **Request Body**:
+    ```json
+    {
+      "ticker": "AAPL",
+      "strike_price": 220,
+      "expiration_date": "2025-09-19",
+      "option_type": "call"
+    }
+    ```
+-   **Response Body**:
+    ```json
+    {
+      "stock_price_axis": [140.0, 146.6, ...],
+      "time_axis": [250, 222, ...],
+      "prices": [
+        [5.50, 6.20, ...],
+        [5.10, 5.75, ...],
+        ...
+      ]
+    }
+    ```
+
+### `GET /options/strikes`
+
+Fetches available strike prices for a given ticker and expiration date.
+
+-   **Query Parameters**: `ticker` (str), `expiration_date` (str)
+-   **Response Body**:
+    ```json
+    {
+      "strikes": [210.0, 212.5, 215.0, 217.5, 220.0, ...]
+    }
+    ```
 
 ---
 
@@ -78,65 +101,75 @@ A high-performance options analytics backend designed for quantitative analysis.
 
 ### Prerequisites
 
-- Python 3.10+
-- C++ compiler (MSVC for Windows, GCC/Clang for macOS/Linux)
-- Git
+-   Python 3.10+
+-   A C++ compiler (MSVC for Windows, GCC/Clang for macOS/Linux)
+-   Node.js and npm (for the frontend)
+-   Git
 
-### Steps
+### Backend Setup
 
-1. **Clone the Repository**
-git clone https://github.com/vedaantmohta/options-intelligence-platform.git
-cd options-intelligence-platform/backend
+1.  **Clone the Repository**:
+    ```bash
+    git clone [https://github.com/VedaantMohta/options-intelligence-platform.git](https://github.com/VedaantMohta/options-intelligence-platform.git)
+    cd options-intelligence-platform/backend
+    ```
 
-2. **Set Up a Virtual Environment**
-python -m venv venv
-activate venv
+2.  **Set Up Virtual Environment**:
+    ```bash
+    python -m venv venv
+    # On Windows:
+    # venv\Scripts\activate
+    # On macOS/Linux:
+    # source venv/bin/activate
+    ```
 
-3. **Install Dependencies**
-pip install -r requirements.txt
+3.  **Install Dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-4. **Configure API Key**
-Create a .env file in the backend directory and add your Polygon.io API key:
-POLYGON_API_KEY="your_polygon_api_key_here"
+4.  **Configure API Key**:
+    Create a `config.py` file in the `backend` directory:
+    ```
+    POLYGON_API_KEY = "your_polygon_api_key_here"
+    ```
 
-5. **Compile the C++ Module**
-Run the setup script to build the C++ pricing engine as a Python module:
-python setup.py build_ext --inplace
+5.  **Compile the C++ Module**:
+    ```bash
+    python setup.py build_ext --inplace
+    ```
 
-6. **Run the Server**
-Start the FastAPI server with hot-reloading:
-uvicorn app.main:app --reload
-Access the API
-The API will be running at http://127.0.0.1:8000.
-Use the interactive docs at http://127.0.0.1:8000/docs.
+6.  **Run the Backend Server (From Backend Directory)**:
+    ```bash
+    uvicorn app.main:app --reload
+    ```
+    The backend is now running at `http://127.0.0.1:8000`.
+
+### Frontend Setup
+
+1.  **Navigate to Frontend Directory**:
+    ```bash
+    # From the root of the project
+    cd frontend
+    ```
+
+2.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+
+3.  **Run the Frontend Server**:
+    ```bash
+    npm run dev
+    ```
+    The frontend is now running at `http://localhost:5173` (or a similar port) and is proxied to the backend.
+
+---
 
 ## Future Roadmap
 
-The following features and improvements are planned to enhance the Options Intelligence Platform:
-
-- **Implied Volatility Solver**  
-  Implement a dedicated endpoint using numerical root-finding algorithms (e.g., Newton-Raphson) to derive implied volatility from observed market option prices.
-
-- **Option Greeks Calculation**  
-  Extend the C++ pricing engine to compute key Greeks — Delta, Gamma, Vega, Theta, and Rho — enabling comprehensive risk and sensitivity analysis.
-
-- **Advanced Volatility Models**  
-  Integrate stochastic volatility and local volatility models to improve pricing accuracy under complex market conditions.
-
-- **Machine Learning Integration**  
-  Develop ML models to predict volatility surfaces and option price movements, leveraging historical data and market features.
-
-- **Expanded Contract Support**  
-  Add support for exotic options and multi-asset derivatives to broaden platform applicability.
-
-- **User Authentication & API Rate Limiting**  
-  Implement secure user authentication and enforce rate limits for scalable and controlled API access.
-
-- **Comprehensive Documentation & Tutorials**  
-  Enhance documentation with detailed usage guides, API references, and example workflows.
-
-- **Performance Optimization**  
-  Profile and optimize both Python and C++ components to support ultra-low latency and high throughput.
-
-- **Frontend Dashboard**  
-  Build an interactive web dashboard to visualize option chains, volatility surfaces, and Greeks in real-time.
+-   [ ] **Implied Volatility Solver**: Implement a Newton-Raphson solver to calculate implied volatility from market prices.
+-   [ ] **Greeks Calculation**: Extend the C++ engine to compute Delta, Gamma, Vega, and Theta for risk analysis.
+-   [ ] **Advanced Volatility Models**: Integrate GARCH or other stochastic volatility models.
+-   [ ] **User Authentication**: Implement JWT-based authentication for user accounts and saved settings.
+-   [ ] **Containerization**: Dockerize the application for consistent deployment and scalability.

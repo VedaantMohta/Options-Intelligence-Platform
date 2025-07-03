@@ -186,7 +186,7 @@ export default function App() {
                                     scene: {
                                         // --- THIS IS THE CORRECTED STRUCTURE ---
                                         xaxis: { title: { text: 'Stock Price ($)' }, titlefont: { color: '#9ca3af' }, tickfont: { color: '#9ca3af' }, gridcolor: 'rgba(255,255,255,0.1)'},
-                                        yaxis: { title: { text: 'Time to Expiration (Yrs)' }, titlefont: { color: '#9ca3af' }, tickfont: { color: '#9ca3af' }, gridcolor: 'rgba(255,255,255,0.1)'},
+                                        yaxis: { title: { text: 'Time to Expiration (Days)' }, titlefont: { color: '#9ca3af' }, tickfont: { color: '#9ca3af' }, gridcolor: 'rgba(255,255,255,0.1)'},
                                         zaxis: { title: { text: 'Option Price ($)' }, titlefont: { color: '#9ca3af' }, tickfont: { color: '#9ca3af' }, gridcolor: 'rgba(255,255,255,0.1)'}
                                     },
                                     paper_bgcolor: 'transparent',
